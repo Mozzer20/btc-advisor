@@ -2,17 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0c10">
   <meta name="description" content="Bitcoin multi-timeframe buy/sell/hold paper advisor with backtest. Educational only — not financial advice.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="BTC Advisor">
   <title>BTC Advisor — paper trading</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>
   <header class="top">
     <div class="brand">
-      <span class="mark" aria-hidden="true">B</span>
+      <img class="mark-img" src="icon-192.png" width="44" height="44" alt="">
       <div>
         <h1>BTC Advisor</h1>
         <p class="tag">Daily trend · 4h trigger · 1h timing · paper only</p>
@@ -49,6 +57,30 @@
         </ul>
       </article>
     </section>
+
+    <section class="card evidence-card" aria-label="Why this call">
+      <h2>Why this call</h2>
+      <p class="muted thin">Each layer is a measured vote. Numbers are from the live candles, not a story. Forward returns below are the same rules on <em>this download only</em> — sample size is the science; there is no p-hacking theatre.</p>
+      <div id="evLayers" class="ev-layers"></div>
+      <p id="evVerdict" class="ev-verdict"></p>
+      <h3 class="subh">After similar calls on this history</h3>
+      <p id="fwdNote" class="muted thin">Waiting for history…</p>
+      <div class="table-wrap">
+        <table class="fwd-table" id="fwdTable">
+          <thead>
+            <tr>
+              <th>Call</th>
+              <th>+6h mean</th>
+              <th>+24h mean</th>
+              <th>+7d mean</th>
+              <th>n (24h)</th>
+            </tr>
+          </thead>
+          <tbody id="fwdBody"><tr><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="stack" aria-label="Timeframe snapshot">
       <article class="card mini" id="miniD">
         <h2>Daily</h2>

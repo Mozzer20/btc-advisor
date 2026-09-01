@@ -417,7 +417,8 @@
     const h4 = indicators(h4s, i4);
     const d = indicators(d1s, id);
     const c = combine(d, h4, h1);
-    return { d: d, h4: h4, h1: h1, signal: c.signal, why: c.why, trig: c.trig };
+    const ev = layerEvidence(d, h4, h1);
+    return { d: d, h4: h4, h1: h1, signal: c.signal, why: c.why, trig: c.trig, evidence: ev };
   }
 
   function runBacktest() {
@@ -477,6 +478,130 @@
     };
   }
 
+
+  function gapPct(a, b) {
+    if (a == null || b == null || !b) return null;
+    return (a - b) / b;
+  }
+
+  function layerEvidence(d, h4, h1) {
+    const trig = h4Trigger(h4);
+    const h1BuyTime = !!(h1 && h1.rsi != null && h1.rsi < 62 && !h1.nearResist);
+    const h1SellTime = !!(h1 && h1.rsi != null && h1.rsi > 38 && !h1.nearSupport);
+    function pack(name, ind, vote, rule) {
+      if (!ind) {
+        return { name: name, vote: "NO", rule: "Not enough bars yet.", rsi: null, sma20: null, sma50: null, gap: null, trend: null, volRatio: null, distSup: null, distRes: null, support: null, resist: null, price: null };
+      }
+      return {
+        name: name,
+        vote: vote ? "YES" : "NO",
+        rule: rule,
+        rsi: ind.rsi,
+        sma20: ind.sma20,
+        sma50: ind.sma50,
+        gap: gapPct(ind.sma20, ind.sma50),
+        trend: ind.trend,
+        volRatio: ind.volRatio,
+        distSup: ind.support ? (ind.price - ind.support.p) / ind.price : null,
+        distRes: ind.resist ? (ind.resist.p - ind.price) / ind.price : null,
+        support: ind.support ? ind.support.p : null,
+        resist: ind.resist ? ind.resist.p : null,
+        price: ind.price
+      };
+    }
+    let dRule = "Need daily SMA 50.";
+    if (d) {
+      const g = gapPct(d.sma20, d.sma50);
+      const gTxt = g == null ? "" : " SMA20 is " + (g * 100).toFixed(2) + "% " + (g >= 0 ? "above" : "below") + " SMA50.";
+      dRule = "Daily trend is " + d.trend + "." + gTxt + " BUY needs UP, SELL needs DOWN.";
+    }
+    let h4Rule = "Need 4h indicators.";
+    if (h4 && h4.rsi != null) {
+      const bits = [];
+      bits.push("RSI " + h4.rsi.toFixed(1) + (h4.rsi < 30 ? " (<30 oversold)" : h4.rsi > 70 ? " (>70 stretched)" : " (not in 30/70 extremes)"));
+      if (h4.bullCross) bits.push("bullish SMA cross this bar");
+      if (h4.bearCross) bits.push("bearish SMA cross this bar");
+      if (h4.nearSupport) bits.push("within 1.2% of swing support");
+      if (h4.nearResist) bits.push("within 1.2% of swing resistance");
+      if (trig.buy) h4Rule = "BUY trigger: " + (trig.whyBuy || bits.join("; ")) + ".";
+      else if (trig.sell) h4Rule = "SELL trigger: " + (trig.whySell || bits.join("; ")) + ".";
+      else h4Rule = "No 4h trigger. " + bits.join("; ") + ". Need RSI<30, bullish cross, or support bounce (sell: RSI>70, bearish cross, or resistance stall).";
+    }
+    let h1Rule = "Need 1h indicators.";
+    if (h1 && h1.rsi != null) {
+      const ds = h1.support ? ((h1.price - h1.support.p) / h1.price * 100).toFixed(2) + "% above support" : "no support below";
+      const dr = h1.resist ? ((h1.resist.p - h1.price) / h1.price * 100).toFixed(2) + "% below resistance" : "no resistance above";
+      if (h1BuyTime && !h1SellTime) h1Rule = "Timing OK for BUY only. RSI " + h1.rsi.toFixed(1) + "; " + ds + "; " + dr + ".";
+      else if (h1SellTime && !h1BuyTime) h1Rule = "Timing OK for SELL only. RSI " + h1.rsi.toFixed(1) + "; " + ds + "; " + dr + ".";
+      else if (h1BuyTime && h1SellTime) h1Rule = "Timing allows both. RSI " + h1.rsi.toFixed(1) + "; " + ds + "; " + dr + ".";
+      else h1Rule = "Timing veto. RSI " + h1.rsi.toFixed(1) + " (BUY needs RSI<62 and not under resistance; SELL needs RSI>38 and not on support). " + ds + "; " + dr + ".";
+    }
+    const dBuy = !!(d && d.trend === "UP");
+    const dSell = !!(d && d.trend === "DOWN");
+    return {
+      daily: pack("Daily trend", d, dBuy || dSell, dRule),
+      h4: pack("4h trigger", h4, !!(trig && (trig.buy || trig.sell)), h4Rule),
+      h1: pack("1h timing", h1, h1BuyTime || h1SellTime, h1Rule),
+      trig: trig,
+      h1BuyTime: h1BuyTime,
+      h1SellTime: h1SellTime
+    };
+  }
+
+  function stats(arr) {
+    if (!arr || !arr.length) return { n: 0, mean: null, median: null, pos: null };
+    const s = arr.slice().sort(function (a, b) { return a - b; });
+    const n = s.length;
+    const mean = s.reduce(function (a, b) { return a + b; }, 0) / n;
+    const median = n % 2 ? s[(n - 1) >> 1] : (s[n / 2 - 1] + s[n / 2]) / 2;
+    const pos = s.filter(function (x) { return x > 0; }).length / n;
+    return { n: n, mean: mean, median: median, pos: pos };
+  }
+
+  function forwardStudy() {
+    const h1s = state.series["1h"];
+    const h4s = state.series["4h"];
+    const d1s = state.series["1d"];
+    const horizons = [6, 24, 168];
+    const buckets = {
+      BUY: { 6: [], 24: [], 168: [] },
+      SELL: { 6: [], 24: [], 168: [] },
+      HOLD: { 6: [], 24: [], 168: [] }
+    };
+    const start = SMA_SLOW + 2;
+    let changes = 0;
+    let last = null;
+    for (let i = start; i < h1s.length; i++) {
+      const t = h1s[i].t;
+      const i4 = lastAtOrBefore(h4s, t);
+      const id = lastAtOrBefore(d1s, t);
+      const h1 = indicators(h1s, i);
+      const h4 = i4 >= SMA_SLOW ? indicators(h4s, i4) : null;
+      const d = id >= SMA_SLOW ? indicators(d1s, id) : null;
+      const sig = combine(d, h4, h1).signal;
+      if (last && sig !== last) changes += 1;
+      last = sig;
+      const px = h1s[i].c;
+      for (let h = 0; h < horizons.length; h++) {
+        const hrs = horizons[h];
+        const j = i + hrs;
+        if (j < h1s.length && buckets[sig]) {
+          buckets[sig][hrs].push((h1s[j].c - px) / px);
+        }
+      }
+    }
+    const hours = Math.max(0, h1s.length - start);
+    const out = {};
+    ["BUY", "SELL", "HOLD"].forEach(function (sig) {
+      out[sig] = {
+        6: stats(buckets[sig][6]),
+        24: stats(buckets[sig][24]),
+        168: stats(buckets[sig][168])
+      };
+    });
+    return { hours: hours, changes: changes, bySignal: out };
+  }
+
   global.ADV = {
     REFRESH_MS: REFRESH_MS,
     START_CASH: START_CASH,
@@ -490,6 +615,8 @@
     loadMarket: loadMarket,
     liveAdvice: liveAdvice,
     runBacktest: runBacktest,
+    layerEvidence: layerEvidence,
+    forwardStudy: forwardStudy,
     smaSeries: smaSeries
   };
 })(window);

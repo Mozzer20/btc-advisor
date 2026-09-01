@@ -83,6 +83,59 @@
     el("h1Time").textContent = !live.h1 ? "—" : live.h1.nearResist ? "at resist" : live.h1.nearSupport ? "at support" : (live.h1.rsi != null ? "RSI " + live.h1.rsi.toFixed(0) : "—");
   }
 
+
+  function fmtPct(x, digits) {
+    if (x == null || Number.isNaN(x)) return "—";
+    const d = digits == null ? 2 : digits;
+    const sign = x > 0 ? "+" : "";
+    return sign + (x * 100).toFixed(d) + "%";
+  }
+
+  function paintEvidence(live) {
+    const box = el("evLayers");
+    const verdict = el("evVerdict");
+    if (!box || !live) return;
+    const ev = live.evidence;
+    if (!ev) { box.innerHTML = ""; return; }
+    const layers = [ev.daily, ev.h4, ev.h1];
+    box.innerHTML = layers.map(function (L) {
+      return '<article class="ev-layer"><div class="head"><h3>' + escapeHtml(L.name) +
+        '</h3><span class="vote ' + L.vote + '">' + L.vote + '</span></div><p class="ev-rule">' +
+        escapeHtml(L.rule) + '</p><ul class="ev-nums">' +
+        "<li>RSI <strong>" + (L.rsi != null ? L.rsi.toFixed(1) : "—") + "</strong></li>" +
+        "<li>SMA gap <strong>" + fmtPct(L.gap, 2) + "</strong></li>" +
+        "<li>Vol vs 20 <strong>" + (L.volRatio != null ? L.volRatio.toFixed(2) + "x" : "—") + "</strong></li>" +
+        "<li>To support <strong>" + fmtPct(L.distSup, 2) + "</strong></li>" +
+        "<li>To resist <strong>" + fmtPct(L.distRes, 2) + "</strong></li>" +
+        "<li>Trend <strong>" + (L.trend || "—") + "</strong></li>" +
+        "</ul></article>";
+    }).join("");
+    const nYes = layers.filter(function (L) { return L.vote === "YES"; }).length;
+    verdict.textContent = live.signal + " because " + nYes + "/3 layers currently vote yes. All three must align for BUY or SELL.";
+  }
+
+  function paintForward(study, liveSig) {
+    const body = el("fwdBody");
+    const note = el("fwdNote");
+    if (!body || !study) return;
+    const hours = study.hours || 0;
+    const ch = study.changes || 0;
+    const perWeek = hours ? (ch / (hours / 168)) : 0;
+    note.textContent = hours + " hourly bars on this download. The stacked call changed " + ch +
+      " times (~" + perWeek.toFixed(1) + " per week). HOLD dominates. Means below are BTC's move after that call, not the paper book. Tiny n is a tiny n.";
+    function cell(st) {
+      if (!st || !st.n) return "<span class=\"muted\">n=0</span>";
+      const cls = st.mean > 0 ? "up" : st.mean < 0 ? "down" : "";
+      return '<span class="' + cls + '">' + fmtPct(st.mean, 2) + "</span> <span class=\"muted\">med " + fmtPct(st.median, 2) + "</span>";
+    }
+    body.innerHTML = ["BUY", "SELL", "HOLD"].map(function (sig) {
+      const row = study.bySignal[sig];
+      const hl = liveSig === sig ? ' class="on-row"' : "";
+      return "<tr" + hl + "><th>" + sig + "</th><td>" + cell(row[6]) + "</td><td>" + cell(row[24]) +
+        "</td><td>" + cell(row[168]) + "</td><td>" + (row[24].n || 0) + "</td></tr>";
+    }).join("");
+  }
+
   function paintSignal(live) {
     state.live = live;
     const card = el("signalCard");
@@ -90,6 +143,7 @@
     el("signalWord").textContent = live.signal;
     el("signalWhy").textContent = live.why;
     paintMinis(live);
+    paintEvidence(live);
     rememberSignal(live);
   }
 
@@ -427,6 +481,7 @@
       if (full || !state.backtest) {
         state.backtest = runBacktest();
         paintBacktest();
+        paintForward(A.forwardStudy(), live.signal);
       }
       drawChart();
     } catch (err) {
@@ -465,6 +520,10 @@
     });
   }
 
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(function () { /* offline optional */ });
+  }
   bind();
   paintHistory();
   paintBook();

@@ -6,8 +6,9 @@ It loads about **1,000 candles each** on **1 hour, 4 hour, and daily**, stacks t
 
 **This is not financial advice.** Past signals and backtests are not future returns. Paper trading only.
 
-Live (once GitHub Pages is enabled on `main` / root):
-https://mozzer20.github.io/btc-advisor/
+Live: https://mozzer20.github.io/btc-advisor/
+
+**Phone:** open that URL, then iOS Safari Share → Add to Home Screen, or Chrome menu → Install app. It is a PWA (standalone, icon, works on a small screen).
 
 ## How to run locally
 
@@ -71,3 +72,7 @@ Tried in order, public, no key. Full history on first load (~1,000 x 3 timeframe
 ## Disclaimer
 
 Educational paper trading only. Not financial advice, not a broker, not an exchange. Bitcoin is volatile; you can lose money. Do not use this to place real orders.
+
+## Evidence panel
+
+Under the call, each of the three layers shows a **YES/NO vote** plus the measured RSI, SMA gap, volume vs its 20-bar average, and distance to swing support/resistance. The table is **forward returns on this download**: when the stack said BUY/SELL/HOLD, what BTC did over the next 6 hours, 24 hours, and 7 days (mean, median, sample size). Small `n` is shown, not dressed up as significance.
