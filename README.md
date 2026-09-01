@@ -65,9 +65,19 @@ Paper-trading buttons on the page are separate: they use the live USD print and 
 
 Tried in order, public, no key. Full history on first load (~1,000 x 3 timeframes). Every **30 seconds** only the ticker and the last few candles are refreshed so the API is not spammed.
 
-1. **Binance** `https://api.binance.com/api/v3/` — BTCUSDT klines (`1h`, `4h`, `1d`, limit 1000), 24h ticker, BTCGBP spot
-2. **Binance US** `https://api.binance.us/api/v3/` if `.com` is geo-blocked
-3. **Coinbase Exchange** `https://api.exchange.coinbase.com` — BTC-USD candles paginated (~300 per page) plus BTC-GBP ticker
+**Candles / USD print** (never shown as pounds):
+
+1. **Binance** `https://api.binance.com/api/v3/` — BTCUSDT klines (`1h`, `4h`, `1d`, limit 1000) and 24h ticker
+2. **Binance US** `https://api.binance.us/api/v3/` if `.com` is geo-blocked — still BTCUSDT; Binance US has **no BTCGBP pair**
+3. **Coinbase Exchange** `https://api.exchange.coinbase.com` — BTC-USD candles paginated (~300 per page) plus BTC-USD ticker
+
+**Pounds** are a separate path. Never treat USDT as GBP:
+
+1. **Coinbase BTC-GBP** ticker (preferred real pound print)
+2. **Kraken XBTGBP** if Coinbase GBP is down
+3. **Coinbase BTC-USD × USDGBP** from Frankfurter if both GBP books fail
+
+The £ line on the page names which of those three was used.
 
 ## Disclaimer
 

@@ -1,5 +1,5 @@
 /* BTC Advisor service worker — cache app shell, never fake live prices. */
-const CACHE = "btc-advisor-v2";
+const CACHE = "btc-advisor-v3";
 const SHELL = [
   "./",
   "./index.html",
@@ -27,7 +27,7 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("fetch", function (e) {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
-  const liveHost = /binance\.|coinbase\.com/.test(url.hostname);
+  const liveHost = /binance\.|coinbase\.com|kraken\.com|frankfurter\.app/.test(url.hostname);
   if (liveHost) {
     e.respondWith(fetch(e.request).catch(function () { return new Response("[]", { status: 504, headers: { "Content-Type": "application/json" } }); }));
     return;
