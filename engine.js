@@ -24,6 +24,7 @@
     series: { "1h": [], "4h": [], "1d": [] },
     usd: null,
     gbp: null,
+    gbpHow: null,
     chg24: null,
     source: "",
     lastOk: 0,
@@ -330,16 +331,15 @@
       ? [binanceKlines(host, "1h", WANT), binanceKlines(host, "4h", WANT), binanceKlines(host, "1d", WANT)]
       : [binanceKlines(host, "1h", 3), binanceKlines(host, "4h", 3), binanceKlines(host, "1d", 3)];
     const usd24 = fetchJson(host + "/ticker/24hr?symbol=BTCUSDT");
-    const gbpP = fetchJson(host + "/ticker/price?symbol=BTCGBP").catch(function () { return null; });
-    const pack = await Promise.all(tasks.concat([usd24, gbpP]));
-    const h1 = pack[0], h4 = pack[1], d1 = pack[2], t24 = pack[3], gbpTick = pack[4];
+    const pack = await Promise.all(tasks.concat([usd24]));
+    const h1 = pack[0], h4 = pack[1], d1 = pack[2], t24 = pack[3];
     const lastUsd = +t24.lastPrice;
     return {
       h1: stitchLive(h1, TF["1h"].ms, lastUsd),
       h4: stitchLive(h4, TF["4h"].ms, lastUsd),
       d1: stitchLive(d1, TF["1d"].ms, lastUsd),
       usd: lastUsd,
-      gbp: gbpTick ? +gbpTick.price : null,
+      gbp: null,
       chg24: t24.priceChangePercent != null ? +t24.priceChangePercent : null,
       source: label
     };
@@ -352,11 +352,6 @@
     const d1 = await coinbaseKlines(86400, want);
     const ticker = await fetchJson("https://api.exchange.coinbase.com/products/BTC-USD/ticker");
     const stats = await fetchJson("https://api.exchange.coinbase.com/products/BTC-USD/stats");
-    let gbpPx = null;
-    try {
-      const g = await fetchJson("https://api.exchange.coinbase.com/products/BTC-GBP/ticker");
-      gbpPx = g && g.price != null ? +g.price : null;
-    } catch (e) { gbpPx = null; }
     const lastUsd = +ticker.price;
     const open = stats && stats.open != null ? +stats.open : null;
     return {
@@ -364,10 +359,31 @@
       h4: stitchLive(h4, TF["4h"].ms, lastUsd),
       d1: stitchLive(d1, TF["1d"].ms, lastUsd),
       usd: lastUsd,
-      gbp: gbpPx,
+      gbp: null,
       chg24: open ? ((lastUsd - open) / open) * 100 : null,
       source: "Coinbase"
     };
+  }
+
+
+  async function fetchGbpPound(usd) {
+    try {
+      const g = await fetchJson("https://api.exchange.coinbase.com/products/BTC-GBP/ticker");
+      const px = g && g.price != null ? +g.price : NaN;
+      if (px > 1000) return { gbp: px, gbpHow: "Coinbase BTC-GBP" };
+    } catch (e) {}
+    try {
+      const kr = await fetchJson("https://api.kraken.com/0/public/Ticker?pair=XBTGBP");
+      const row = kr && kr.result && (kr.result.XXBTZGBP || kr.result.XBTGBP);
+      const last = row && row.c && +row.c[0];
+      if (last > 1000) return { gbp: last, gbpHow: "Kraken BTC-GBP" };
+    } catch (e) {}
+    try {
+      const fx = await fetchJson("https://api.frankfurter.app/latest?from=USD&to=GBP");
+      const rate = fx && fx.rates && +fx.rates.GBP;
+      if (usd && rate > 0.2 && rate < 2) return { gbp: usd * rate, gbpHow: "USD x " + rate.toFixed(4) + " GBP" };
+    } catch (e) {}
+    return { gbp: null, gbpHow: null };
   }
 
   async function loadMarket(full) {
@@ -394,10 +410,12 @@
           stitchLive(state.series["1d"], TF["1d"].ms, m.usd);
         }
         state.usd = m.usd;
-        state.gbp = m.gbp;
         state.chg24 = m.chg24;
         state.source = m.source;
         state.lastOk = Date.now();
+        const g = await fetchGbpPound(m.usd);
+        state.gbp = g.gbp;
+        state.gbpHow = g.gbpHow;
         return m.source;
       } catch (err) {
         lastErr = err;
