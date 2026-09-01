@@ -113,7 +113,7 @@
         "</ul></article>";
     }).join("");
     const nYes = layers.filter(function (L) { return L.vote === "YES"; }).length;
-    verdict.textContent = live.signal + " because " + nYes + "/3 layers currently vote yes. All three must align for BUY or SELL.";
+    verdict.textContent = live.signal + " because " + nYes + "/3 layers currently vote yes in the daily direction. All three must agree that way for BUY or SELL.";
   }
 
   function paintForward(study, liveSig) {

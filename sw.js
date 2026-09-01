@@ -1,5 +1,5 @@
 /* BTC Advisor service worker — cache app shell, never fake live prices. */
-const CACHE = "btc-advisor-v3";
+const CACHE = "btc-advisor-v4";
 const SHELL = [
   "./",
   "./index.html",

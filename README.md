@@ -75,7 +75,7 @@ Tried in order, public, no key. Full history on first load (~1,000 x 3 timeframe
 
 1. **Coinbase BTC-GBP** ticker (preferred real pound print)
 2. **Kraken XBTGBP** if Coinbase GBP is down
-3. **Coinbase BTC-USD × USDGBP** from Frankfurter if both GBP books fail
+3. **Coinbase BTC-USD × USDGBP** from Frankfurter (`api.frankfurter.dev`) if both GBP books fail
 
 The £ line on the page names which of those three was used.
 

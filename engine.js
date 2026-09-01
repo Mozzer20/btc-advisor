@@ -381,7 +381,7 @@
     try {
       const usdTick = await fetchJson("https://api.exchange.coinbase.com/products/BTC-USD/ticker");
       const usdPx = usdTick && usdTick.price != null ? +usdTick.price : NaN;
-      const fx = await fetchJson("https://api.frankfurter.app/latest?from=USD&to=GBP");
+      const fx = await fetchJson("https://api.frankfurter.dev/v1/latest?base=USD&symbols=GBP");
       const rate = fx && fx.rates && +fx.rates.GBP;
       if (usdPx > 1000 && rate > 0.2 && rate < 2) {
         return { gbp: usdPx * rate, gbpHow: "Coinbase BTC-USD x " + rate.toFixed(4) + " GBP" };
@@ -560,10 +560,12 @@
     }
     const dBuy = !!(d && d.trend === "UP");
     const dSell = !!(d && d.trend === "DOWN");
+    const h4Yes = (dBuy && !!(trig && trig.buy)) || (dSell && !!(trig && trig.sell));
+    const h1Yes = (dBuy && h1BuyTime) || (dSell && h1SellTime);
     return {
       daily: pack("Daily trend", d, dBuy || dSell, dRule),
-      h4: pack("4h trigger", h4, !!(trig && (trig.buy || trig.sell)), h4Rule),
-      h1: pack("1h timing", h1, h1BuyTime || h1SellTime, h1Rule),
+      h4: pack("4h trigger", h4, h4Yes, h4Rule),
+      h1: pack("1h timing", h1, h1Yes, h1Rule),
       trig: trig,
       h1BuyTime: h1BuyTime,
       h1SellTime: h1SellTime
