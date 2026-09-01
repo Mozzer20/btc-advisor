@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0c10">
+  <meta name="description" content="Bitcoin multi-timeframe buy/sell/hold paper advisor with backtest. Educational only — not financial advice.">
+  <title>BTC Advisor — paper trading</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">B</span>
+      <div>
+        <h1>BTC Advisor</h1>
+        <p class="tag">Daily trend · 4h trigger · 1h timing · paper only</p>
+      </div>
+    </div>
+    <div class="feed">
+      <span id="feedDot" class="dot wait" title="Feed status"></span>
+      <div class="feed-copy">
+        <strong id="feedLabel">Connecting…</strong>
+        <span id="feedMeta">Public APIs · ~1000 candles × 1h / 4h / 1d</span>
+      </div>
+    </div>
+  </header>
+  <div id="banner" class="banner" hidden role="status"></div>
+  <main>
+    <section class="hero" aria-label="Price and advice">
+      <article class="card price-card">
+        <p class="kicker">Bitcoin · live-ish</p>
+        <p id="priceUsd" class="price">—</p>
+        <p id="priceGbp" class="gbp">£ —</p>
+        <div class="chg-row">
+          <span id="chg24" class="pill">24h —</span>
+          <span id="asOf" class="muted">loading history…</span>
+        </div>
+      </article>
+      <article id="signalCard" class="card signal-card hold" aria-live="polite">
+        <p class="kicker">Stacked call (1d + 4h + 1h)</p>
+        <p id="signalWord" class="signal-word">HOLD</p>
+        <p id="signalWhy" class="why">Pulling hourly, 4-hour and daily history so the stack can vote…</p>
+        <ul class="raw three" aria-label="Live stack">
+          <li><span>Daily trend</span><strong id="dailyBias">—</strong></li>
+          <li><span>4h trigger</span><strong id="h4Trig">—</strong></li>
+          <li><span>1h timing</span><strong id="h1Time">—</strong></li>
+        </ul>
+      </article>
+    </section>
+    <section class="stack" aria-label="Timeframe snapshot">
+      <article class="card mini" id="miniD">
+        <h2>Daily</h2>
+        <p class="mini-bias" id="miniDBias">—</p>
+        <ul>
+          <li>RSI <strong id="dRsi">—</strong></li>
+          <li>SMA20 <strong id="dS20">—</strong></li>
+          <li>SMA50 <strong id="dS50">—</strong></li>
+          <li>Vol vs avg <strong id="dVol">—</strong></li>
+        </ul>
+      </article>
+      <article class="card mini" id="mini4">
+        <h2>4 hour</h2>
+        <p class="mini-bias" id="mini4Bias">—</p>
+        <ul>
+          <li>RSI <strong id="h4Rsi">—</strong></li>
+          <li>SMA20 <strong id="h4S20">—</strong></li>
+          <li>SMA50 <strong id="h4S50">—</strong></li>
+          <li>Vol vs avg <strong id="h4Vol">—</strong></li>
+        </ul>
+      </article>
+      <article class="card mini" id="mini1">
+        <h2>1 hour</h2>
+        <p class="mini-bias" id="mini1Bias">—</p>
+        <ul>
+          <li>RSI <strong id="h1Rsi">—</strong></li>
+          <li>Support <strong id="h1Sup">—</strong></li>
+          <li>Resist <strong id="h1Res">—</strong></li>
+          <li>Vol vs avg <strong id="h1Vol">—</strong></li>
+        </ul>
+      </article>
+    </section>
+    <section class="card chart-card" aria-label="Price chart">
+      <div class="chart-head">
+        <h2 id="chartTitle">BTC · 1 hour</h2>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab on" data-tf="1h">1H</button>
+          <button type="button" class="tab" data-tf="4h">4H</button>
+          <button type="button" class="tab" data-tf="1d">1D</button>
+        </div>
+        <div class="tabs">
+          <button type="button" class="tab on" data-range="recent">Recent</button>
+          <button type="button" class="tab" data-range="all">All loaded</button>
+        </div>
+      </div>
+      <p class="muted thin chart-note">Candles, volume, SMA 20/50, and the nearest confirmed swing high/low. Recent = last 180 bars.</p>
+      <div class="canvas-wrap">
+        <canvas id="chart" width="900" height="360">Chart needs canvas.</canvas>
+      </div>
+      <ul class="legend">
+        <li><i class="swatch up"></i> Up</li>
+        <li><i class="swatch down"></i> Down</li>
+        <li><i class="swatch sma20"></i> SMA 20</li>
+        <li><i class="swatch sma50"></i> SMA 50</li>
+        <li><i class="swatch sr"></i> Swing S/R</li>
+        <li><i class="swatch vol"></i> Volume</li>
+      </ul>
+    </section>
+    <section class="card backtest-card" aria-label="Backtest">
+      <div class="card-head">
+        <h2>Backtest on loaded history</h2>
+        <span class="pill dim" id="btSample">waiting…</span>
+      </div>
+      <p class="muted thin">Same stack as the live call: daily trend + 4h trigger + 1h timing, long-only, fill at that 1h close. <strong>Past candles are not a forecast</strong> — this is how the toy behaved on this download, not a promise it will do it again.</p>
+      <dl class="stats bt-stats">
+        <div><dt>Round trips</dt><dd id="btTrades">—</dd></div>
+        <div><dt>Win rate</dt><dd id="btWin">—</dd></div>
+        <div><dt>Total return</dt><dd id="btRet">—</dd></div>
+        <div><dt>Max drawdown</dt><dd id="btDd">—</dd></div>
+        <div><dt>End equity</dt><dd id="btEq">—</dd></div>
+        <div><dt>vs $10,000 start</dt><dd id="btPnl">—</dd></div>
+      </dl>
+      <div class="canvas-wrap">
+        <canvas id="equity" width="900" height="180">Equity curve</canvas>
+      </div>
+      <h3 class="subh">Closed paper trades in the test</h3>
+      <ol id="btFills" class="fills"><li class="empty">Waiting for history…</li></ol>
+    </section>
+    <section class="split">
+      <article class="card paper-card">
+        <div class="card-head">
+          <h2>Paper book</h2>
+          <button type="button" id="resetBtn" class="ghost">Reset $10,000</button>
+        </div>
+        <p class="muted thin">Virtual cash only. Fills at the latest USD print and stay in this browser. Not the backtest.</p>
+        <dl class="stats" id="bookStats">
+          <div><dt>Cash</dt><dd id="statCash">$10,000.00</dd></div>
+          <div><dt>BTC held</dt><dd id="statBtc">0.00000000</dd></div>
+          <div><dt>Equity</dt><dd id="statEquity">$10,000.00</dd></div>
+          <div><dt>P and L</dt><dd id="statPnl" class="flat">$0.00</dd></div>
+        </dl>
+        <div class="trade-row">
+          <div>
+            <span class="lbl">Buy with cash</span>
+            <div class="btns">
+              <button type="button" class="buy" data-buy="0.25">25%</button>
+              <button type="button" class="buy" data-buy="0.5">50%</button>
+              <button type="button" class="buy" data-buy="1">All in</button>
+            </div>
+          </div>
+          <div>
+            <span class="lbl">Sell BTC</span>
+            <div class="btns">
+              <button type="button" class="sell" data-sell="0.25">25%</button>
+              <button type="button" class="sell" data-sell="0.5">50%</button>
+              <button type="button" class="sell" data-sell="1">All out</button>
+            </div>
+          </div>
+        </div>
+        <p id="tradeFlash" class="flash" hidden></p>
+        <h3 class="subh">Your fills</h3>
+        <ol id="fills" class="fills"><li class="empty">No paper fills yet.</li></ol>
+      </article>
+      <article class="card hist-card">
+        <h2>Signal history</h2>
+        <p class="muted thin">Logged when the stacked call changes, not every 30s refresh.</p>
+        <ol id="history" class="history"><li class="empty">Waiting for the first call…</li></ol>
+      </article>
+    </section>
+    <section class="card how-card">
+      <h2>How the call is made</h2>
+      <ol class="steps">
+        <li>Download about <strong>1,000 candles each</strong> on 1 hour, 4 hour, and daily (Binance public klines, paginated if needed).</li>
+        <li>On each timeframe: <strong>RSI(14)</strong> (Wilder), <strong>SMA 20 vs SMA 50</strong>, <strong>volume vs its 20-bar average</strong>, and confirmed <strong>swing highs/lows</strong> (5 bars either side) as nearby support / resistance.</li>
+        <li><strong>Daily</strong> sets the trend (short average above long = up, below = down).</li>
+        <li><strong>4 hour</strong> is the trigger: RSI under 30, a bullish SMA cross, or a bounce near support (and the mirror for sells).</li>
+        <li><strong>1 hour</strong> is timing: do not buy into nearby resistance / overbought; do not sell into nearby support / oversold.</li>
+        <li>All three must line up for BUY or SELL. Anything mixed is HOLD. Volume colours the sentence; it does not override the stack.</li>
+      </ol>
+      <p class="muted">Honest numbers, classroom rules. Not a crystal ball, not a broker, not financial advice.</p>
+    </section>
+  </main>
+  <footer class="disclaimer">
+    <p><strong>Not financial advice.</strong> No real orders, wallets, or API keys. The backtest fills at the same hourly close as the signal — that is kinder than live trading. Past win rate on this download does not predict the next trade. Bitcoin is volatile; you can lose money.</p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
