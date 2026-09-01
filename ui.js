@@ -39,7 +39,9 @@
 
   function paintPrice() {
     el("priceUsd").textContent = usd(state.usd);
-    el("priceGbp").textContent = state.gbp != null ? gbp(state.gbp) + " approx" : "GBP feed unavailable";
+    el("priceGbp").textContent = state.gbp != null
+      ? gbp(state.gbp) + (state.gbpHow ? " · " + state.gbpHow : "")
+      : "GBP feed unavailable";
     const chg = el("chg24");
     if (state.chg24 == null) { chg.textContent = "24h —"; chg.className = "pill"; }
     else {
