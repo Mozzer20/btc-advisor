@@ -366,7 +366,7 @@
   }
 
 
-  async function fetchGbpPound(usd) {
+  async function fetchGbpPound() {
     try {
       const g = await fetchJson("https://api.exchange.coinbase.com/products/BTC-GBP/ticker");
       const px = g && g.price != null ? +g.price : NaN;
@@ -379,9 +379,13 @@
       if (last > 1000) return { gbp: last, gbpHow: "Kraken BTC-GBP" };
     } catch (e) {}
     try {
+      const usdTick = await fetchJson("https://api.exchange.coinbase.com/products/BTC-USD/ticker");
+      const usdPx = usdTick && usdTick.price != null ? +usdTick.price : NaN;
       const fx = await fetchJson("https://api.frankfurter.app/latest?from=USD&to=GBP");
       const rate = fx && fx.rates && +fx.rates.GBP;
-      if (usd && rate > 0.2 && rate < 2) return { gbp: usd * rate, gbpHow: "USD x " + rate.toFixed(4) + " GBP" };
+      if (usdPx > 1000 && rate > 0.2 && rate < 2) {
+        return { gbp: usdPx * rate, gbpHow: "Coinbase BTC-USD x " + rate.toFixed(4) + " GBP" };
+      }
     } catch (e) {}
     return { gbp: null, gbpHow: null };
   }
@@ -413,7 +417,7 @@
         state.chg24 = m.chg24;
         state.source = m.source;
         state.lastOk = Date.now();
-        const g = await fetchGbpPound(m.usd);
+        const g = await fetchGbpPound();
         state.gbp = g.gbp;
         state.gbpHow = g.gbpHow;
         return m.source;
